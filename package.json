@@ -1,0 +1,29 @@
+{
+  "name": "sai-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollup -c rollup.config.ts",
+    "dev": "rollup -c -p run",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "Star Atlas Italia",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/bigquery": "^5.12.0",
+    "@google-cloud/functions-framework": "^3.1.1",
+    "axios": "^0.27.2",
+    "discord.js": "^13.6.0",
+    "dotenv": "^16.0.0",
+    "typescript": "^4.6.4"
+  },
+  "devDependencies": {
+    "@rollup/plugin-run": "^2.1.0",
+    "@rollup/plugin-typescript": "^8.3.2",
+    "@zerollup/ts-transform-paths": "^1.7.18",
+    "rollup": "^2.71.1",
+    "rollup-plugin-dotenv": "^0.3.0"
+  }
+}
