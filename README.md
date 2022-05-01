@@ -12,4 +12,4 @@ Per testare il bot in modalità dev:
 $ yarn dev
 ```
 
-NOTA: necessario il file service_account.json e .env
+NOTA: necessari i file service_account.json e .env
