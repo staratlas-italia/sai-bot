@@ -1,8 +1,9 @@
 import { BigQuery } from "@google-cloud/bigquery";
 import discord, { Guild } from "discord.js";
 import "dotenv/config";
+import { push } from "~/commands/push";
 import { queryMember } from "~/queries/queryMember";
-import { updateMemberNotificationFlag } from "~/queries/updateMemberNotificationFlag";
+import { PushCommandStatus } from "~/types";
 
 const bigquery: BigQuery = new BigQuery({
   credentials: {
@@ -95,62 +96,12 @@ discordClient.on("interactionCreate", async (interaction) => {
 
   switch (commandName) {
     case "push": {
-      console.log("Status", options.getString("status"));
+      const status = options.getString("status") as PushCommandStatus;
+      const replyMessage = await push({ bigquery, member, status });
 
-      switch (true) {
-        case options.getString("status") === "on": {
-          if (!member.notifications) {
-            const updateResult = await updateMemberNotificationFlag({
-              bigquery,
-              discordId: member.discord_id,
-              value: true,
-            });
-
-            if (updateResult) {
-              interaction.editReply({
-                content: "Le notifiche sono state ATTIVATE con successo 🚀",
-              });
-            } else {
-              interaction.editReply({
-                content: "C'è stato un errore imprevisto, riprova più tardi",
-              });
-            }
-          } else {
-            interaction.editReply({
-              content: "Le notifiche sono già attive",
-            });
-          }
-          break;
-        }
-        case options.getString("status") === "off": {
-          if (member.notifications) {
-            const disableNotificationResult =
-              await updateMemberNotificationFlag({
-                bigquery,
-                discordId: member.discord_id,
-                value: false,
-              });
-
-            if (disableNotificationResult) {
-              interaction.editReply({
-                content: "Le notifiche sono state DISATTIVATE con successo",
-              });
-            } else {
-              interaction.editReply({
-                content: "Le notifiche sono già disattivate",
-              });
-            }
-          }
-          break;
-        }
-        default: {
-          interaction.editReply({
-            content:
-              "Il comando non è valido, lo status può essere solo on oppure off",
-          });
-        }
-      }
-      break;
+      interaction.editReply({
+        content: replyMessage,
+      });
     }
     default: {
       interaction.editReply({
