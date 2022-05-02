@@ -3,3 +3,5 @@ export type Member = {
   discord_id: string;
   notifications?: boolean;
 };
+
+export type PushCommandStatus = "on" | "off";
