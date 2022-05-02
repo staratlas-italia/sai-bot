@@ -65,6 +65,8 @@ discordClient.on("ready", async () => {
       },
     ],
   });
+
+  console.log("Discord client is ready!");
 });
 
 discordClient.on("interactionCreate", async (interaction) => {
@@ -77,19 +79,24 @@ discordClient.on("interactionCreate", async (interaction) => {
   const memberUsername = interaction.member?.user.username.toLowerCase();
 
   if (!memberUsername) {
-    console.log("Invalid member username");
+    console.log(`Invalid member username ${memberUsername}`);
     return;
   }
 
   const member = await queryMember({ bigquery, userIdLike: memberUsername });
 
   if (!member) {
-    console.log("Invalid member, please try again later");
+    console.log("Member not found", memberUsername);
     return;
   }
 
+  // Consent to reply in ~15 minutes instead of 3 seconds
+  await interaction.deferReply({ ephemeral: true });
+
   switch (commandName) {
     case "push": {
+      console.log("Status", options.getString("status"));
+
       switch (true) {
         case options.getString("status") === "on": {
           if (!member.notifications) {
@@ -100,20 +107,17 @@ discordClient.on("interactionCreate", async (interaction) => {
             });
 
             if (updateResult) {
-              interaction.reply({
+              interaction.editReply({
                 content: "Le notifiche sono state ATTIVATE con successo 🚀",
-                ephemeral: true,
               });
             } else {
-              interaction.reply({
+              interaction.editReply({
                 content: "C'è stato un errore imprevisto, riprova più tardi",
-                ephemeral: true,
               });
             }
           } else {
-            interaction.reply({
+            interaction.editReply({
               content: "Le notifiche sono già attive",
-              ephemeral: true,
             });
           }
           break;
@@ -128,35 +132,36 @@ discordClient.on("interactionCreate", async (interaction) => {
               });
 
             if (disableNotificationResult) {
-              interaction.reply({
+              interaction.editReply({
                 content: "Le notifiche sono state DISATTIVATE con successo",
-                ephemeral: true,
               });
             } else {
-              interaction.reply({
+              interaction.editReply({
                 content: "Le notifiche sono già disattivate",
-                ephemeral: true,
               });
             }
           }
           break;
         }
         default: {
-          interaction.reply({
+          interaction.editReply({
             content:
               "Il comando non è valido, lo status può essere solo on oppure off",
-            ephemeral: true,
           });
         }
       }
+      break;
     }
     default: {
-      interaction.reply({
+      interaction.editReply({
         content: "Il comando non è valido",
-        ephemeral: true,
       });
     }
   }
+});
+
+discordClient.on("error", (err) => {
+  console.log(JSON.stringify(err, null, 2));
 });
 
 discordClient.login(discordBotToken);
