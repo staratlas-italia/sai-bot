@@ -1,14 +1,16 @@
-import { Member } from "./types/index";
 import { BigQuery } from "@google-cloud/bigquery";
 import discord, { Guild } from "discord.js";
 import "dotenv/config";
+import { queryMember } from "~/queries/queryMember";
+import { updateMemberNotificationFlag } from "~/queries/updateMemberNotificationFlag";
 
-const options = {
-  keyFilename: "./service_account.json",
+const bigquery: BigQuery = new BigQuery({
+  credentials: {
+    client_email: process.env.GCP_CLIENT_EMAIL,
+    private_key: process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+  },
   projectId: "fleetsnapshots",
-};
-
-const bigquery: BigQuery = new BigQuery(options);
+});
 
 const discordClient = new discord.Client({
   intents: [
@@ -44,15 +46,14 @@ discordClient.on("ready", async () => {
     (await discordClient.guilds.cache.get(discordGuildId)) ||
     (await discordClient.guilds.fetch(discordGuildId));
 
-  let commands;
+  let commands = guild ? guild.commands : discordClient.application?.commands;
 
-  if (guild) {
-    commands = guild.commands;
-  } else {
-    commands = discordClient.application?.commands;
+  if (!commands) {
+    console.log("No command manager available");
+    return;
   }
 
-  commands?.create({
+  commands.create({
     name: "push",
     description: "Refill push notifications",
     options: [
@@ -73,120 +74,85 @@ discordClient.on("interactionCreate", async (interaction) => {
 
   const { commandName, options } = interaction;
 
-  // PUSH NOTIFICATIONS COMMAND
-  if (commandName === "push") {
-    const queryUsers: string = `SELECT public_key, discord_id, notifications
-                                FROM fleetsnapshots.star_atlas.players`;
+  const memberUsername = interaction.member?.user.username.toLowerCase();
 
-    const optionsUsers = {
-      query: queryUsers,
-      location: "EU",
-    };
+  if (!memberUsername) {
+    console.log("Invalid member username");
+    return;
+  }
 
-    const [job] = await bigquery.createQueryJob(optionsUsers);
-    const [rows] = await job.getQueryResults();
+  const member = await queryMember({ bigquery, userIdLike: memberUsername });
 
-    // ON
-    if (options.getString("status") == "on") {
-      const member: Member = rows.find((row) =>
-        row.discord_id
-          .toLowerCase()
-          .includes(interaction.member?.user.username.toLowerCase())
-      );
+  if (!member) {
+    console.log("Invalid member, please try again later");
+    return;
+  }
 
-      if (!member) {
-        interaction.reply({
-          content: "C'è stato un errore imprevisto, riprova più tardi",
-          ephemeral: true,
-        });
-        return;
-      }
+  switch (commandName) {
+    case "push": {
+      switch (true) {
+        case options.getString("status") === "on": {
+          if (!member.notifications) {
+            const updateResult = await updateMemberNotificationFlag({
+              bigquery,
+              discordId: member.discord_id,
+              value: true,
+            });
 
-      if (!member.notifications || member.notifications == null) {
-        const queryUpdateOn: string = `UPDATE fleetsnapshots.star_atlas.players
-        SET notifications = true WHERE discord_id = '${member.discord_id.toUpperCase()}'`;
+            if (updateResult) {
+              interaction.reply({
+                content: "Le notifiche sono state ATTIVATE con successo 🚀",
+                ephemeral: true,
+              });
+            } else {
+              interaction.reply({
+                content: "C'è stato un errore imprevisto, riprova più tardi",
+                ephemeral: true,
+              });
+            }
+          } else {
+            interaction.reply({
+              content: "Le notifiche sono già attive",
+              ephemeral: true,
+            });
+          }
+          break;
+        }
+        case options.getString("status") === "off": {
+          if (member.notifications) {
+            const disableNotificationResult =
+              await updateMemberNotificationFlag({
+                bigquery,
+                discordId: member.discord_id,
+                value: false,
+              });
 
-        const optionsUpdateOn = {
-          query: queryUpdateOn,
-          location: "EU",
-        };
-
-        try {
-          const q = await bigquery.query(optionsUpdateOn);
-          console.log(q);
-
+            if (disableNotificationResult) {
+              interaction.reply({
+                content: "Le notifiche sono state DISATTIVATE con successo",
+                ephemeral: true,
+              });
+            } else {
+              interaction.reply({
+                content: "Le notifiche sono già disattivate",
+                ephemeral: true,
+              });
+            }
+          }
+          break;
+        }
+        default: {
           interaction.reply({
-            content: "Le notifiche sono state ATTIVATE con successo 🚀",
-            ephemeral: true,
-          });
-        } catch (err) {
-          console.log(err);
-
-          interaction.reply({
-            content: "C'è stato un errore imprevisto, riprova più tardi",
+            content:
+              "Il comando non è valido, lo status può essere solo on oppure off",
             ephemeral: true,
           });
         }
-      } else {
-        interaction.reply({
-          content: "Le notifiche sono già attive",
-          ephemeral: true,
-        });
       }
     }
-    // OFF
-    else if (options.getString("status") == "off") {
-      const member: Member = rows.find((row) =>
-        row.discord_id
-          .toLowerCase()
-          .includes(interaction.member?.user.username.toLowerCase())
-      );
-
-      if (!member) {
-        interaction.reply({
-          content: "C'è stato un errore imprevisto, riprova più tardi",
-          ephemeral: true,
-        });
-        return;
-      }
-
-      if (member.notifications) {
-        const queryUpdateOff: string = `UPDATE fleetsnapshots.star_atlas.players
-        SET notifications = false WHERE discord_id = '${member.discord_id.toUpperCase()}'`;
-
-        const optionsUpdateOff = {
-          query: queryUpdateOff,
-          location: "EU",
-        };
-
-        try {
-          const q = await bigquery.query(optionsUpdateOff);
-          console.log(q);
-
-          interaction.reply({
-            content: "Le notifiche sono state DISATTIVATE con successo",
-            ephemeral: true,
-          });
-        } catch (err) {
-          console.log(err);
-
-          interaction.reply({
-            content: "C'è stato un errore imprevisto, riprova più tardi",
-            ephemeral: true,
-          });
-        }
-      } else {
-        interaction.reply({
-          content: "Le notifiche sono già disattivate",
-          ephemeral: true,
-        });
-      }
-    }
-    // ERROR
-    else {
+    default: {
       interaction.reply({
-        content:
-          "Il comando non è valido, lo status può essere solo on oppure off",
+        content: "Il comando non è valido",
         ephemeral: true,
       });
     }
