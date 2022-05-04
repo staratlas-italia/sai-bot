@@ -102,6 +102,7 @@ discordClient.on("interactionCreate", async (interaction) => {
       interaction.editReply({
         content: replyMessage,
       });
+      break;
     }
     default: {
       interaction.editReply({
