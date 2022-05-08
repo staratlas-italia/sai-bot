@@ -86,14 +86,19 @@ discordClient.on("interactionCreate", async (interaction) => {
 
   const { commandName, options } = interaction;
 
+  const needPermissionCommands = ["push"];
+
   // Consent to reply in ~15 minutes instead of 3 seconds
   await interaction.deferReply({ ephemeral: true });
 
   const memberRoles: GuildMemberRoleManager = interaction.member
     ?.roles as GuildMemberRoleManager;
 
-  if (!memberRoles.cache.some((role) => role.id === "969209584877199370")) {
-    console.log("Role not found");
+  if (
+    !memberRoles.cache.some((role) => role.id === "969209584877199370") &&
+    needPermissionCommands.includes(commandName)
+  ) {
+    console.log("Needed role not found");
 
     interaction.editReply({
       content:
