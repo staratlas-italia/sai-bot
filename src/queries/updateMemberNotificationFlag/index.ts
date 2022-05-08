@@ -11,11 +11,12 @@ export const updateMemberNotificationFlag = async ({
   discordId,
   value,
 }: Param) => {
-  const query: string = `UPDATE fleetsnapshots.star_atlas.players SET notifications = ${value} WHERE discord_id = '${discordId.toUpperCase()}'`;
+  const query: string = `UPDATE fleetsnapshots.star_atlas.players SET notifications = @value WHERE discord_id = @discordId`;
 
   const optionsUpdateOn = {
     query,
     location: "EU",
+    params: { value: value, discordId: discordId.toUpperCase() },
   };
 
   try {

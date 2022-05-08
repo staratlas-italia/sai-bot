@@ -86,7 +86,7 @@ discordClient.on("interactionCreate", async (interaction) => {
 
   const { commandName, options } = interaction;
 
-  const needPermissionCommands = ["push"];
+  const needPermissionCommands: string[] = ["push"];
 
   // Consent to reply in ~15 minutes instead of 3 seconds
   await interaction.deferReply({ ephemeral: true });
@@ -115,15 +115,18 @@ discordClient.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  const member = await queryMember({ bigquery, userIdLike: memberUsername });
-
-  if (!member) {
-    console.log("Member not found", memberUsername);
-    return;
-  }
-
   switch (commandName) {
     case "push": {
+      const member = await queryMember({
+        bigquery,
+        userIdLike: memberUsername,
+      });
+
+      if (!member) {
+        console.log("Member not found", memberUsername);
+        return;
+      }
+
       const status = options.getString("status") as PushCommandStatus;
       const replyMessage = await push({ bigquery, member, status });
 
