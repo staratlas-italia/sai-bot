@@ -72,7 +72,7 @@ discordClient.on("ready", async () => {
   });
 
   commands.create({
-    name: "refill",
+    name: "referral",
     description: "Get referral server link",
   });
 
@@ -85,6 +85,9 @@ discordClient.on("interactionCreate", async (interaction) => {
   }
 
   const { commandName, options } = interaction;
+
+  // Consent to reply in ~15 minutes instead of 3 seconds
+  await interaction.deferReply({ ephemeral: true });
 
   const memberRoles: GuildMemberRoleManager = interaction.member
     ?.roles as GuildMemberRoleManager;
@@ -113,9 +116,6 @@ discordClient.on("interactionCreate", async (interaction) => {
     console.log("Member not found", memberUsername);
     return;
   }
-
-  // Consent to reply in ~15 minutes instead of 3 seconds
-  await interaction.deferReply({ ephemeral: true });
 
   switch (commandName) {
     case "push": {
