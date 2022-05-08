@@ -1,5 +1,9 @@
 import { BigQuery } from "@google-cloud/bigquery";
-import discord, { Guild } from "discord.js";
+import discord, {
+  Guild,
+  GuildMemberRoleManager,
+  TextChannel,
+} from "discord.js";
 import "dotenv/config";
 import { push } from "~/commands/push";
 import { queryMember } from "~/queries/queryMember";
@@ -67,6 +71,11 @@ discordClient.on("ready", async () => {
     ],
   });
 
+  commands.create({
+    name: "refill",
+    description: "Get referral server link",
+  });
+
   console.log("Discord client is ready!");
 });
 
@@ -76,6 +85,20 @@ discordClient.on("interactionCreate", async (interaction) => {
   }
 
   const { commandName, options } = interaction;
+
+  const memberRoles: GuildMemberRoleManager = interaction.member
+    ?.roles as GuildMemberRoleManager;
+
+  if (!memberRoles.cache.some((role) => role.id === "969209584877199370")) {
+    console.log("Role not found");
+
+    interaction.editReply({
+      content:
+        "Non hai l'autorizzazione necessaria per lanciare questo comando",
+    });
+
+    return;
+  }
 
   const memberUsername = interaction.member?.user.username.toLowerCase();
 
@@ -101,6 +124,17 @@ discordClient.on("interactionCreate", async (interaction) => {
 
       interaction.editReply({
         content: replyMessage,
+      });
+      break;
+    }
+    case "referral": {
+      const invite = await (interaction.channel as TextChannel).createInvite({
+        unique: true,
+        temporary: false,
+      });
+
+      interaction.editReply({
+        content: "Ecco il tuo referral link: https://discord.gg/" + invite.code,
       });
       break;
     }
