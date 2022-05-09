@@ -6,6 +6,7 @@ import discord, {
 } from "discord.js";
 import "dotenv/config";
 import { push } from "~/commands/push";
+import { referral } from "~/commands/referral";
 import { queryMember } from "~/queries/queryMember";
 import { PushCommandStatus } from "~/types";
 
@@ -129,20 +130,18 @@ discordClient.on("interactionCreate", async (interaction) => {
 
       const status = options.getString("status") as PushCommandStatus;
       const replyMessage = await push({ bigquery, member, status });
-
       interaction.editReply({
         content: replyMessage,
       });
       break;
     }
     case "referral": {
-      const invite = await (interaction.channel as TextChannel).createInvite({
-        unique: true,
-        temporary: false,
+      const replyMessage = await referral({
+        channel: interaction.channel as TextChannel,
       });
 
       interaction.editReply({
-        content: "Ecco il tuo referral link: https://discord.gg/" + invite.code,
+        content: replyMessage,
       });
       break;
     }
