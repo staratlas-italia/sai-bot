@@ -1,7 +1,12 @@
 import { BigQuery } from "@google-cloud/bigquery";
-import discord, { Guild } from "discord.js";
+import discord, {
+  Guild,
+  GuildMemberRoleManager,
+  TextChannel,
+} from "discord.js";
 import "dotenv/config";
 import { push } from "~/commands/push";
+import { referral } from "~/commands/referral";
 import { queryMember } from "~/queries/queryMember";
 import { PushCommandStatus } from "~/types";
 
@@ -67,6 +72,11 @@ discordClient.on("ready", async () => {
     ],
   });
 
+  commands.create({
+    name: "referral",
+    description: "Get referral server link",
+  });
+
   console.log("Discord client is ready!");
 });
 
@@ -77,6 +87,28 @@ discordClient.on("interactionCreate", async (interaction) => {
 
   const { commandName, options } = interaction;
 
+  const needPermissionCommands: string[] = ["push"];
+
+  // Consent to reply in ~15 minutes instead of 3 seconds
+  await interaction.deferReply({ ephemeral: true });
+
+  const memberRoles: GuildMemberRoleManager = interaction.member
+    ?.roles as GuildMemberRoleManager;
+
+  if (
+    !memberRoles.cache.some((role) => role.id === "969209584877199370") &&
+    needPermissionCommands.includes(commandName)
+  ) {
+    console.log("Needed role not found");
+
+    interaction.editReply({
+      content:
+        "Non hai l'autorizzazione necessaria per lanciare questo comando",
+    });
+
+    return;
+  }
+
   const memberUsername = interaction.member?.user.username.toLowerCase();
 
   if (!memberUsername) {
@@ -84,20 +116,29 @@ discordClient.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  const member = await queryMember({ bigquery, userIdLike: memberUsername });
-
-  if (!member) {
-    console.log("Member not found", memberUsername);
-    return;
-  }
-
-  // Consent to reply in ~15 minutes instead of 3 seconds
-  await interaction.deferReply({ ephemeral: true });
-
   switch (commandName) {
     case "push": {
+      const member = await queryMember({
+        bigquery,
+        userIdLike: memberUsername,
+      });
+
+      if (!member) {
+        console.log("Member not found", memberUsername);
+        return;
+      }
+
       const status = options.getString("status") as PushCommandStatus;
       const replyMessage = await push({ bigquery, member, status });
+      interaction.editReply({
+        content: replyMessage,
+      });
+      break;
+    }
+    case "referral": {
+      const replyMessage = await referral({
+        channel: interaction.channel as TextChannel,
+      });
 
       interaction.editReply({
         content: replyMessage,
