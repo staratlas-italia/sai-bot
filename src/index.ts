@@ -1,12 +1,12 @@
-import { Member } from "./types/index";
-import { checkPermission } from "./utils/checkPermission/index";
 import { BigQuery } from "@google-cloud/bigquery";
 import discord, { Guild, GuildMember, TextChannel } from "discord.js";
 import "dotenv/config";
 import { push } from "~/commands/push";
 import { referral } from "~/commands/referral";
 import { queryMember } from "~/queries/queryMember";
-import { PushCommandStatus } from "~/types";
+import { Command, PushCommandStatus } from "~/types";
+import { Member } from "./types/index";
+import { checkPermission } from "./utils/checkPermission/index";
 
 const bigquery: BigQuery = new BigQuery({
   credentials: {
@@ -95,7 +95,7 @@ discordClient.on("interactionCreate", async (interaction) => {
   // Consent to reply in ~15 minutes instead of 3 seconds
   await interaction.deferReply({ ephemeral: true });
 
-  if (!checkPermission({ author, commandName })) {
+  if (!checkPermission({ author, commandName: commandName as Command })) {
     interaction.editReply({
       content:
         "Non hai l'autorizzazione necessaria per lanciare questo comando",

@@ -4,4 +4,6 @@ export type Member = {
   notifications?: boolean;
 };
 
+export type Command = "push" | "referral";
+
 export type PushCommandStatus = "on" | "off";
