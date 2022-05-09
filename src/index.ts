@@ -1,9 +1,7 @@
+import { Member } from "./types/index";
+import { checkPermission } from "./utils/checkPermission/index";
 import { BigQuery } from "@google-cloud/bigquery";
-import discord, {
-  Guild,
-  GuildMemberRoleManager,
-  TextChannel,
-} from "discord.js";
+import discord, { Guild, GuildMember, TextChannel } from "discord.js";
 import "dotenv/config";
 import { push } from "~/commands/push";
 import { referral } from "~/commands/referral";
@@ -87,20 +85,17 @@ discordClient.on("interactionCreate", async (interaction) => {
 
   const { commandName, options } = interaction;
 
-  const needPermissionCommands: string[] = ["push"];
+  const author: GuildMember = interaction.member as GuildMember;
+
+  if (!author) {
+    console.log("Author who interacted is invalid");
+    return;
+  }
 
   // Consent to reply in ~15 minutes instead of 3 seconds
   await interaction.deferReply({ ephemeral: true });
 
-  const memberRoles: GuildMemberRoleManager = interaction.member
-    ?.roles as GuildMemberRoleManager;
-
-  if (
-    !memberRoles.cache.some((role) => role.id === "969209584877199370") &&
-    needPermissionCommands.includes(commandName)
-  ) {
-    console.log("Needed role not found");
-
+  if (!checkPermission({ author, commandName })) {
     interaction.editReply({
       content:
         "Non hai l'autorizzazione necessaria per lanciare questo comando",
@@ -109,7 +104,7 @@ discordClient.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  const memberUsername = interaction.member?.user.username.toLowerCase();
+  const memberUsername = author.user.username.toLowerCase();
 
   if (!memberUsername) {
     console.log(`Invalid member username ${memberUsername}`);
@@ -118,7 +113,7 @@ discordClient.on("interactionCreate", async (interaction) => {
 
   switch (commandName) {
     case "push": {
-      const member = await queryMember({
+      const member: Member = await queryMember({
         bigquery,
         userIdLike: memberUsername,
       });
