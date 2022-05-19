@@ -53,13 +53,9 @@ export const refillCheck = async ({
   }
 
   // current datetime - 5:50 hours
-  const checkTimestamp: BigQueryTimestamp = new BigQueryTimestamp(
-    new Date(Date.now() - 21000000)
-  );
+  const checkTimestamp = new BigQueryTimestamp(new Date(Date.now() - 21000000));
 
-  const currentTimestamp: BigQueryTimestamp = new BigQueryTimestamp(
-    new Date(Date.now())
-  );
+  const currentTimestamp = new BigQueryTimestamp(new Date(Date.now()));
 
   const currentLocalTime = new Date().toLocaleTimeString("it-IT", {
     hour12: false,
@@ -161,7 +157,7 @@ export const refillCheck = async ({
                 };
 
                 try {
-                  let q = await bigquery.query(optionsUpdateRefillCheck);
+                  await bigquery.query(optionsUpdateRefillCheck);
                 } catch (err) {
                   console.log(err);
                 }

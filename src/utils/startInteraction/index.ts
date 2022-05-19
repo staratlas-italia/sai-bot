@@ -57,11 +57,6 @@ export const startInteraction = async ({ interaction, bigquery }: Param) => {
         userIdLike: memberUsername,
       });
 
-      if (!member) {
-        console.log("Member not found", memberUsername);
-        return false;
-      }
-
       const status = options.getString("status") as PushCommandStatus;
       const replyMessage = await push({ bigquery, member, status });
       interaction.editReply({
