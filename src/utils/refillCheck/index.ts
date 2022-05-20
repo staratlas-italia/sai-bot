@@ -59,9 +59,9 @@ export const refillCheck = async ({
 
   const currentTime = new Date(Date.now());
 
-  console.log("Fleets check is starting at", currentTime);
+  const hour = currentTime.getUTCHours();
 
-  const hour = currentTime.getHours();
+  console.log("Fleets check is starting at", hour);
 
   if (hour > 5 && hour < 22) {
     await discordClient.login(discordBotToken);
