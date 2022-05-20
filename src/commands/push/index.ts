@@ -9,6 +9,11 @@ type Param = {
 };
 
 export const push = async ({ bigquery, member, status }: Param) => {
+  if (!member) {
+    console.log("Member not found");
+    return "Non hai l'autorizzazione necessaria per lanciare questo comando";
+  }
+
   switch (status) {
     case "on": {
       if (!member.notifications) {
