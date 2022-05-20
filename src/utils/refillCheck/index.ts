@@ -55,9 +55,9 @@ export const refillCheck = async ({
   // current datetime - 5:50 hours
   const checkTimestamp = new BigQueryTimestamp(new Date(Date.now() - 21000000));
 
-  const currentTimestamp = new BigQueryTimestamp(new Date(Date.now()));
+  const currentTimestamp = new BigQueryTimestamp(new Date());
 
-  const currentTime = new Date(Date.now());
+  const currentTime = new Date();
 
   const hour = currentTime.getUTCHours();
 
