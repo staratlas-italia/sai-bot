@@ -57,15 +57,11 @@ export const refillCheck = async ({
 
   const currentTimestamp = new BigQueryTimestamp(new Date(Date.now()));
 
-  const currentLocalTime = new Date().toLocaleTimeString("it-IT", {
-    hour12: false,
-    hour: "numeric",
-    minute: "numeric",
-  });
+  const currentTime = new Date(Date.now());
 
-  console.log("Fleets check is starting at", currentLocalTime);
+  console.log("Fleets check is starting at", currentTime);
 
-  const hour = parseInt(currentLocalTime.toString().split(":")[0]);
+  const hour = currentTime.getHours();
 
   if (hour > 5 && hour < 22) {
     await discordClient.login(discordBotToken);
