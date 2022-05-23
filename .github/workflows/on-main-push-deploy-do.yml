@@ -1,8 +1,8 @@
 name: Deploy to DigitalOcean Droplet
 "on":
   push:
-    branches:
-      - main
+    tags:
+      - v.*
 
 jobs:
   deploy:

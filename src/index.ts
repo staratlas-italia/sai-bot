@@ -1,15 +1,15 @@
-import { discordClientInit } from "./utils/discordClientInit/index";
+import { BigQuery } from "@google-cloud/bigquery";
+import { CronJob } from "cron";
+import discord from "discord.js";
+import "dotenv/config";
 import {
   discordBotToken,
   discordChannelId,
   discordGuildId,
 } from "./common/constants/index";
-import { startInteraction } from "./utils/startInteraction/index";
-import { BigQuery } from "@google-cloud/bigquery";
-import discord from "discord.js";
-import "dotenv/config";
-import { CronJob } from "cron";
+import { discordClientInit } from "./utils/discordClientInit/index";
 import { refillCheck } from "./utils/refillCheck";
+import { startInteraction } from "./utils/startInteraction/index";
 
 const bigquery: BigQuery = new BigQuery({
   credentials: {
@@ -46,6 +46,7 @@ discordClient.on("ready", async () => {
 discordClient.on("interactionCreate", async (interaction) => {
   try {
     const launchInteraction = await startInteraction({ interaction, bigquery });
+
     if (!launchInteraction) return;
   } catch (err) {
     console.log(err);
@@ -59,7 +60,7 @@ discordClient.on("error", (err) => {
 
 discordClient.login(discordBotToken);
 
-const refillJob = new CronJob(
+const _ = new CronJob(
   "0 */1 * * *",
   () => {
     refillCheck({
