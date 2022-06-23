@@ -1,31 +1,22 @@
-import { BigQuery } from "@google-cloud/bigquery";
+import { getUsersCollection } from "~/utils/getUsersCollection";
 
 type Param = {
-  bigquery: BigQuery;
   discordId: string;
   value: boolean;
 };
 
 export const updateMemberNotificationFlag = async ({
-  bigquery,
   discordId,
   value,
 }: Param) => {
-  const query: string = `UPDATE fleetsnapshots.star_atlas.players SET notifications = @value WHERE discord_id = @discordId`;
+  const usersCollection = getUsersCollection();
 
-  const optionsUpdateOn = {
-    query,
-    location: "EU",
-    params: { value: value, discordId: discordId.toUpperCase() },
-  };
+  const result = await usersCollection.updateOne(
+    { discordId },
+    { $set: { notifications: value } }
+  );
 
-  try {
-    const q = await bigquery.query(optionsUpdateOn);
+  console.log(result);
 
-    return true;
-  } catch (err) {
-    console.log(err);
-
-    return false;
-  }
+  return result.modifiedCount === 1;
 };

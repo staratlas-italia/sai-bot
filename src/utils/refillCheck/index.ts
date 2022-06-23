@@ -1,61 +1,17 @@
-import { Member } from "~/types/index";
-import { getMembersWhoAllowedNotifications } from "~/queries/getMembersWhoAllowedNotifications/index";
-import { BigQuery, BigQueryTimestamp } from "@google-cloud/bigquery";
 import axios, { AxiosResponse } from "axios";
-import {
-  Client,
-  Collection,
-  Guild,
-  GuildMember,
-  TextChannel,
-} from "discord.js";
-import { getShipLevel } from "~/utils/getShipLevel";
+import { TextChannel } from "discord.js";
+import { discordClient } from "~/common/constants";
+import { getMembersWhoAllowedNotifications } from "~/queries/getMembersWhoAllowedNotifications/index";
 import { ScoreFleetResponse } from "~/types/api";
+import { checkRequiredConstants } from "~/utils/checkRequiredConstants";
+import { getShipLevel } from "~/utils/getShipLevel";
+import { getUsersCollection } from "~/utils/getUsersCollection";
 
-type Param = {
-  discordClient: Client<boolean>;
-  bigquery: BigQuery;
-  discordBotToken?: string;
-  discordChannelId?: string;
-  discordGuildId?: string;
-};
-
-export const refillCheck = async ({
-  discordClient,
-  bigquery,
-  discordBotToken,
-  discordChannelId,
-  discordGuildId,
-}: Param) => {
-  if (!discordClient) {
-    console.log("The discord client is not valid");
-    return;
-  }
-
-  if (!bigquery) {
-    console.log("Bigquery connection failed");
-    return;
-  }
-
-  if (!discordBotToken) {
-    console.log("The discord token is not valid");
-    return;
-  }
-
-  if (!discordChannelId) {
-    console.log("The discord channel id is not valid");
-    return;
-  }
-
-  if (!discordGuildId) {
-    console.log("The discord guild id is not valid");
-    return;
-  }
+export const refillCheck = async () => {
+  const { discordBotToken, discordChannelId } = checkRequiredConstants();
 
   // current datetime - 5:50 hours
-  const checkTimestamp = new BigQueryTimestamp(new Date(Date.now() - 21000000));
-
-  const currentTimestamp = new BigQueryTimestamp(new Date());
+  const checkDate = new Date(Date.now() - 21_000_000);
 
   const currentTime = new Date();
 
@@ -63,149 +19,124 @@ export const refillCheck = async ({
 
   console.log("Fleets check is starting at", hour);
 
-  if (hour > 5 && hour < 22) {
-    await discordClient.login(discordBotToken);
+  if (hour <= 5 || hour >= 22) {
+    console.log("skipping check between 22pm and 5am");
 
-    const channel =
-      (await discordClient.channels.cache.get(discordChannelId)) ||
-      (await discordClient.channels.fetch(discordChannelId));
+    return;
+  }
 
-    const guild: Guild =
-      (await discordClient.guilds.cache.get(discordGuildId)) ||
-      (await discordClient.guilds.fetch(discordGuildId));
+  await discordClient.login(discordBotToken);
 
-    const members: Collection<string, GuildMember> =
-      await guild.members.fetch();
+  const channel =
+    (await discordClient.channels.cache.get(discordChannelId)) ||
+    (await discordClient.channels.fetch(discordChannelId));
 
-    const [rows] = await getMembersWhoAllowedNotifications({
-      bigquery,
-      checkTimestamp,
-    });
+  const users = await getMembersWhoAllowedNotifications({
+    checkDate,
+  });
 
-    let usersNeedToRefill: string[] = [];
+  const usersNeedToRefill = new Set<string>();
 
-    let fleet: AxiosResponse<ScoreFleetResponse>;
+  let fleet: AxiosResponse<ScoreFleetResponse>;
 
-    await Promise.all(
-      rows.map(async (row: Member) => {
-        if (row.public_key) {
-          try {
-            console.log(`checking ${row.public_key} fleet`);
+  await Promise.all(
+    users.map(async (user) => {
+      for (let wallet of user.wallets) {
+        console.log(`Checking ${wallet} fleet of user ${user.discordId}`);
 
-            fleet = await axios.get(
-              `https://app.staratlasitalia.com/api/score/${row.public_key}`
-            );
+        try {
+          fleet = await axios.get(
+            `https://app.staratlasitalia.com/api/score/${wallet}`
+          );
+        } catch (e) {
+          console.log(JSON.stringify(e));
+          continue;
+        }
 
-            const member = members.find((m) =>
-              row.discord_id
-                .toLowerCase()
-                .includes(m.user.username.toLowerCase())
-            );
+        const id = user.discordId;
 
-            const id = member?.id;
-
-            if (fleet.data.success && id) {
-              console.log("ID: " + id);
-
-              for (let ship of fleet.data.data) {
-                if (usersNeedToRefill.includes(id)) {
-                  break;
-                }
-
-                if (getShipLevel(ship, "food") < 10) {
-                  console.log(
-                    "ADDED x FOOD " + getShipLevel(ship, "food") + "%: " + id
-                  );
-                  usersNeedToRefill.push(id);
-                  continue;
-                }
-
-                if (getShipLevel(ship, "ammo") < 10) {
-                  console.log(
-                    "ADDED x AMMO " + getShipLevel(ship, "ammo") + "%: " + id
-                  );
-                  usersNeedToRefill.push(id);
-                  continue;
-                }
-
-                if (getShipLevel(ship, "fuel") < 10) {
-                  console.log(
-                    "ADDED x FUEL " + getShipLevel(ship, "fuel") + "%: " + id
-                  );
-                  usersNeedToRefill.push(id);
-                  continue;
-                }
-
-                if (getShipLevel(ship, "tools") < 10) {
-                  console.log(
-                    "ADDED x TOOLS " + getShipLevel(ship, "tools") + "%: " + id
-                  );
-                  usersNeedToRefill.push(id);
-                }
-              }
-              if (usersNeedToRefill.includes(id)) {
-                let queryUpdateRefillCheck: string = `UPDATE fleetsnapshots.star_atlas.players
-                SET last_refill_timestamp = TIMESTAMP('${currentTimestamp.value}') WHERE public_key = '${row.public_key}'`;
-
-                const optionsUpdateRefillCheck = {
-                  query: queryUpdateRefillCheck,
-                  location: "EU",
-                };
-
-                try {
-                  await bigquery.query(optionsUpdateRefillCheck);
-                } catch (err) {
-                  console.log(err);
-                }
-              }
+        if (fleet.data.success) {
+          for (let ship of fleet.data.data) {
+            if (usersNeedToRefill.has(id)) {
+              break;
             }
-          } catch (err) {
-            console.log(`ERROR: ${row.public_key}`);
+
+            if (getShipLevel(ship, "food") < 10) {
+              console.log(
+                "ADDED x FOOD " + getShipLevel(ship, "food") + "%: " + id
+              );
+              usersNeedToRefill.add(id);
+              continue;
+            }
+
+            if (getShipLevel(ship, "ammo") < 10) {
+              console.log(
+                "ADDED x AMMO " + getShipLevel(ship, "ammo") + "%: " + id
+              );
+              usersNeedToRefill.add(id);
+              continue;
+            }
+
+            if (getShipLevel(ship, "fuel") < 10) {
+              console.log(
+                "ADDED x FUEL " + getShipLevel(ship, "fuel") + "%: " + id
+              );
+              usersNeedToRefill.add(id);
+              continue;
+            }
+
+            if (getShipLevel(ship, "tools") < 10) {
+              console.log(
+                "ADDED x TOOLS " + getShipLevel(ship, "tools") + "%: " + id
+              );
+              usersNeedToRefill.add(id);
+            }
           }
         }
-      })
-    );
+      }
+    })
+  );
 
-    console.log(`NEEDREFILL LENGTH: ${usersNeedToRefill.length}`);
+  const usersCollection = getUsersCollection();
 
-    let message: string;
+  const result = await usersCollection.updateMany(
+    {
+      discordId: { $in: [...usersNeedToRefill] },
+    },
+    { $set: { lastRefillAt: currentTime } }
+  );
 
-    if (usersNeedToRefill.length > 0) {
-      const lastMessages = await (channel as TextChannel).messages.fetch({
-        limit: 20,
-      });
+  console.log(
+    "Update lastRefillAt success =",
+    result.modifiedCount === usersNeedToRefill.size
+  );
 
-      lastMessages.forEach((msg) => {
-        if (msg.author.id === discordClient.user?.id) {
-          msg.delete();
-        }
-      });
+  console.log(`NEED REFILL LENGTH: ${usersNeedToRefill.size}`);
 
-      message = usersNeedToRefill
-        .map(
-          (id, index) =>
-            `<@${id}>${index < usersNeedToRefill.length - 1 ? ", " : ""}`
-        )
-        .join("");
+  let message: string;
 
-      message = `${message} una o più navi della vostra flotta stanno per esaurire le risorse! È il momento di rifornire l'equipaggio!`;
-      console.log(message);
+  if (usersNeedToRefill.size > 0) {
+    const lastMessages = await (channel as TextChannel).messages.fetch({
+      limit: 20,
+    });
 
-      (channel as TextChannel).send(message);
-    }
+    lastMessages.forEach((msg) => {
+      if (msg.author.id === discordClient.user?.id) {
+        msg.delete();
+      }
+    });
 
-    console.log("DONE");
+    message = [...usersNeedToRefill]
+      .map(
+        (id, index) =>
+          `<@${id}>${index < usersNeedToRefill.size - 1 ? ", " : ""}`
+      )
+      .join("");
 
-    return {
-      statusCode: 200,
-      needRefill: usersNeedToRefill,
-    };
-  } else {
-    console.log("STOP. IT'S TIME TO SLEEP!");
+    message = `${message} una o più navi della vostra flotta stanno per esaurire le risorse! È il momento di rifornire l'equipaggio!`;
 
-    return {
-      statusCode: 200,
-      needRefill: [],
-    };
+    (channel as TextChannel).send(message);
   }
+
+  console.log("DONE");
 };
