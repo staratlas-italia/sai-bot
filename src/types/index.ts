@@ -12,6 +12,8 @@ export type User = {
   wallets: string[];
 };
 
+export type Resource = "food" | "tools" | "ammo" | "fuel";
+
 export type Command = "push" | "referral";
 
 export type PushCommandStatus = "on" | "off";
