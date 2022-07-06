@@ -1,3 +1,4 @@
+import json from "@rollup/plugin-json";
 import typescript from "@rollup/plugin-typescript";
 
 export default {
@@ -6,7 +7,7 @@ export default {
     file: "lib/index.js",
     format: "cjs",
   },
-  plugins: [typescript()],
+  plugins: [typescript(), json()],
   external: [
     "axios",
     "cron",
