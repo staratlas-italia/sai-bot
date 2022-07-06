@@ -26,10 +26,10 @@ jobs:
               git clone git@github.com:staratlas-italia/sai-bot.git sai-bot-dev
               cd sai-bot-dev
               touch .env
-              echo 'CHANNEL_ID="${{secrets.CHANNEL_ID}}"' >> .env
+              echo 'CHANNEL_ID="${{secrets.DEV_CHANNEL_ID}}"' >> .env
               echo 'DISCORD_BOT_TOKEN="${{secrets.DISCORD_DEV_BOT_TOKEN}}"' >> .env
               echo 'FEATURES_ENDPOINT="${{secrets.FEATURES_ENDPOINT}}"' >> .env
-              echo 'GUILD_ID="${{secrets.GUILD_ID}}"' >> .env
+              echo 'GUILD_ID="${{secrets.DEV_GUILD_ID}}"' >> .env
               echo 'MONGO_DB_USER="${{secrets.MONGO_DB_USER}}"' >> .env
               echo 'MONGO_DB_PWD="${{secrets.MONGO_DB_PWD}}"' >> .env
               yarn install --frozen-lockfile
