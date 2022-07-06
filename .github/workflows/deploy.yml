@@ -1,0 +1,65 @@
+name: Deploy to DigitalOcean Droplet
+"on":
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy-development:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged
+
+    steps:
+      - name: Deploy to development bot
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{secrets.HOST}}
+          username: ${{secrets.USERNAME}}
+          key: ${{secrets.KEY}}
+          script: |
+            pm2 stop development
+              rm -rf sai-bot-dev
+              git clone git@github.com:staratlas-italia/sai-bot.git sai-bot-dev
+              cd sai-bot-dev
+              touch .env
+              echo 'CHANNEL_ID="${{secrets.CHANNEL_ID}}"' >> .env
+              echo 'DISCORD_BOT_TOKEN="${{secrets.DISCORD_DEV_BOT_TOKEN}}"' >> .env
+              echo 'FEATURES_ENDPOINT="${{secrets.FEATURES_ENDPOINT}}"' >> .env
+              echo 'GUILD_ID="${{secrets.GUILD_ID}}"' >> .env
+              echo 'MONGO_DB_USER="${{secrets.MONGO_DB_USER}}"' >> .env
+              echo 'MONGO_DB_PWD="${{secrets.MONGO_DB_PWD}}"' >> .env
+              yarn install --frozen-lockfile
+              yarn build
+              pm2 start lib/index.js --name "development"
+              echo 'Development deployment done'
+  deploy-production:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.ref, 'refs/tags/v')
+
+    steps:
+      - name: Deploy to production bot
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{secrets.HOST}}
+          username: ${{secrets.USERNAME}}
+          key: ${{secrets.KEY}}
+          script: |
+            pm2 stop production
+            rm -rf sai-bot
+            git clone git@github.com:staratlas-italia/sai-bot.git
+            cd sai-bot
+            touch .env
+            echo 'CHANNEL_ID="${{secrets.CHANNEL_ID}}"' >> .env
+            echo 'DISCORD_BOT_TOKEN="${{secrets.DISCORD_BOT_TOKEN}}"' >> .env
+            echo 'FEATURES_ENDPOINT="${{secrets.FEATURES_ENDPOINT}}"' >> .env
+            echo 'GUILD_ID="${{secrets.GUILD_ID}}"' >> .env
+            echo 'MONGO_DB_USER="${{secrets.MONGO_DB_USER}}"' >> .env
+            echo 'MONGO_DB_PWD="${{secrets.MONGO_DB_PWD}}"' >> .env
+            yarn install --frozen-lockfile
+            yarn build
+            pm2 start lib/index.js --name "production"
+            echo 'Production deployment done'
