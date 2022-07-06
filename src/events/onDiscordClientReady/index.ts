@@ -1,5 +1,5 @@
 import { Constants, Guild } from "discord.js";
-import { discordClient } from "~/common/constants";
+import { discordClient, growthbook } from "~/common/constants";
 import { checkRequiredConstants } from "~/utils/checkRequiredConstants";
 
 export const onDiscordClientReady = async () => {
@@ -34,6 +34,13 @@ export const onDiscordClientReady = async () => {
     name: "referral",
     description: "Get referral server link",
   });
+
+  if (growthbook.isOn("sai-bot-enabled-version-command")) {
+    commands.create({
+      name: "version",
+      description: "Get bot version",
+    });
+  }
 
   console.log("Discord client is ready!");
 };

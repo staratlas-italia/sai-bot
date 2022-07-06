@@ -12,6 +12,7 @@
   "author": "Star Atlas Italia",
   "license": "ISC",
   "dependencies": {
+    "@growthbook/growthbook": "^0.18.0",
     "@project-serum/anchor": "^0.24.2",
     "@staratlas/factory": "^0.1.26",
     "@types/cron": "^2.0.0",

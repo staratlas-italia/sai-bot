@@ -1,9 +1,11 @@
 import { GuildMember, Interaction, TextChannel } from "discord.js";
 import { push } from "~/commands/push";
 import { referral } from "~/commands/referral";
+import { growthbook } from "~/common/constants";
 import { fetchMember } from "~/queries/fetchMember";
 import { Command, PushCommandStatus } from "~/types";
 import { checkPermission } from "~/utils/checkPermission";
+import { version } from "../../../package.json";
 
 export const onInteractionCreate = async (interaction: Interaction) => {
   if (!interaction.isCommand()) {
@@ -64,6 +66,16 @@ export const onInteractionCreate = async (interaction: Interaction) => {
         content: replyMessage,
       });
       break;
+    }
+    case "version": {
+      if (growthbook.isOn("sai-bot-enabled-version-command")) {
+        const replyMessage = `v${version}`;
+
+        interaction.editReply({
+          content: replyMessage,
+        });
+        break;
+      }
     }
     default: {
       interaction.editReply({

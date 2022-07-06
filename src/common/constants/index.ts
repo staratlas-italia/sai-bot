@@ -1,3 +1,4 @@
+import { GrowthBook } from "@growthbook/growthbook";
 import discord from "discord.js";
 import { MongoClient, ServerApiVersion } from "mongodb";
 import { Command } from "~/types";
@@ -9,6 +10,8 @@ export const debugRoleId = "973203968530472990";
 export const grantedRoles = [genesisHolderRoleId, debugRoleId];
 
 export const needsPermissionCommands: Command[] = ["push"];
+
+export const featuresEndpoint = process.env.FEATURES_ENDPOINT;
 
 export const discordBotToken = process.env.DISCORD_BOT_TOKEN;
 
@@ -29,3 +32,5 @@ const uri = `mongodb+srv://${process.env.MONGO_DB_USER}:${process.env.MONGO_DB_P
 export const mongoClient = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
+
+export const growthbook = new GrowthBook();

@@ -7,9 +7,12 @@ import {
 } from "~/common/constants";
 import { onDiscordClientReady } from "~/events/onDiscordClientReady";
 import { onInteractionCreate } from "~/events/onInteractionCreate";
+import { initGrowthbook } from "~/utils/initGrowthbook";
 import { refillCheck } from "./utils/refillCheck";
 
 const run = async () => {
+  await initGrowthbook();
+
   try {
     await mongoClient.connect();
   } catch (e) {

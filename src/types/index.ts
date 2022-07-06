@@ -14,7 +14,7 @@ export type User = {
 
 export type Resource = "food" | "tools" | "ammo" | "fuel";
 
-export type Command = "push" | "referral";
+export type Command = "push" | "referral" | "version";
 
 export type PushCommandStatus = "on" | "off";
 
