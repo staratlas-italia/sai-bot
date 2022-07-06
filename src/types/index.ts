@@ -1,14 +1,20 @@
 import { BN } from "@project-serum/anchor";
 import { ShipStakingInfo } from "@staratlas/factory";
 
-// DISCORD BOT
-export type Member = {
-  public_key: string;
-  discord_id: string;
-  notifications?: boolean;
+export type User = {
+  createdAt?: Date;
+  discordId: string;
+  faction?: string;
+  lastRefillAt?: Date;
+  notifications: boolean;
+  players: any[];
+  tier?: 0 | 1 | 2;
+  wallets: string[];
 };
 
-export type Command = "push" | "referral";
+export type Resource = "food" | "tools" | "ammo" | "fuel";
+
+export type Command = "push" | "referral" | "version";
 
 export type PushCommandStatus = "on" | "off";
 

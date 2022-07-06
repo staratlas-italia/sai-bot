@@ -7,4 +7,13 @@ export default {
     format: "cjs",
   },
   plugins: [typescript()],
+  external: [
+    "axios",
+    "cron",
+    "dotenv/config",
+    "discord.js",
+    "invariant",
+    "mongodb",
+    "@growthbook/growthbook",
+  ],
 };

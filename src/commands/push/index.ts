@@ -1,25 +1,23 @@
-import { BigQuery } from "@google-cloud/bigquery";
+import { WithId } from "mongodb";
 import { updateMemberNotificationFlag } from "~/queries/updateMemberNotificationFlag";
-import { Member, PushCommandStatus } from "~/types";
+import { PushCommandStatus, User } from "~/types";
 
 type Param = {
-  bigquery: BigQuery;
-  member: Member;
+  user: WithId<User> | null;
   status: PushCommandStatus;
 };
 
-export const push = async ({ bigquery, member, status }: Param) => {
-  if (!member) {
+export const push = async ({ user, status }: Param) => {
+  if (!user) {
     console.log("Member not found");
     return "Non hai l'autorizzazione necessaria per lanciare questo comando";
   }
 
   switch (status) {
     case "on": {
-      if (!member.notifications) {
+      if (!user.notifications) {
         const updateResult = await updateMemberNotificationFlag({
-          bigquery,
-          discordId: member.discord_id,
+          discordId: user.discordId,
           value: true,
         });
 
@@ -33,10 +31,9 @@ export const push = async ({ bigquery, member, status }: Param) => {
       return "Le notifiche sono già attive";
     }
     case "off": {
-      if (member.notifications) {
+      if (user.notifications) {
         const disableNotificationResult = await updateMemberNotificationFlag({
-          bigquery,
-          discordId: member.discord_id,
+          discordId: user.discordId,
           value: false,
         });
 

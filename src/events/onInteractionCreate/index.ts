@@ -1,25 +1,16 @@
-import { BigQuery } from "@google-cloud/bigquery";
 import { GuildMember, Interaction, TextChannel } from "discord.js";
 import { push } from "~/commands/push";
 import { referral } from "~/commands/referral";
-import { queryMember } from "~/queries/queryMember";
+import { growthbook } from "~/common/constants";
+import { fetchMember } from "~/queries/fetchMember";
 import { Command, PushCommandStatus } from "~/types";
-import { Member } from "~/types/index";
-import { checkPermission } from "~/utils/checkPermission/index";
+import { checkPermission } from "~/utils/checkPermission";
+import { version } from "../../../package.json";
 
-type Param = {
-  interaction: Interaction;
-  bigquery: BigQuery;
-};
-
-export const startInteraction = async ({ interaction, bigquery }: Param) => {
-  if (!bigquery) {
-    console.log("Bigquery connection failed");
-    return false;
-  }
-
+export const onInteractionCreate = async (interaction: Interaction) => {
   if (!interaction.isCommand()) {
-    return false;
+    console.log("Command not found");
+    return;
   }
 
   const { commandName, options } = interaction;
@@ -28,7 +19,7 @@ export const startInteraction = async ({ interaction, bigquery }: Param) => {
 
   if (!author) {
     console.log("Author who interacted is invalid");
-    return false;
+    return;
   }
 
   // Consent to reply in ~15 minutes instead of 3 seconds
@@ -40,25 +31,27 @@ export const startInteraction = async ({ interaction, bigquery }: Param) => {
         "Non hai l'autorizzazione necessaria per lanciare questo comando",
     });
 
-    return false;
+    return;
   }
 
-  const memberUsername = author.user.username.toLowerCase();
+  const memberDiscordId = author.user.id;
 
-  if (!memberUsername) {
-    console.log(`Invalid member username ${memberUsername}`);
-    return false;
+  if (!memberDiscordId) {
+    console.log(`Invalid discord id ${memberDiscordId}`);
+
+    return;
   }
 
   switch (commandName) {
     case "push": {
-      const member: Member = await queryMember({
-        bigquery,
-        userIdLike: memberUsername,
+      const user = await fetchMember({
+        discordId: memberDiscordId,
       });
 
       const status = options.getString("status") as PushCommandStatus;
-      const replyMessage = await push({ bigquery, member, status });
+
+      const replyMessage = await push({ user, status });
+
       interaction.editReply({
         content: replyMessage,
       });
@@ -73,6 +66,16 @@ export const startInteraction = async ({ interaction, bigquery }: Param) => {
         content: replyMessage,
       });
       break;
+    }
+    case "version": {
+      if (growthbook.isOn("sai-bot-enabled-version-command")) {
+        const replyMessage = `v${version}`;
+
+        interaction.editReply({
+          content: replyMessage,
+        });
+        break;
+      }
     }
     default: {
       interaction.editReply({
