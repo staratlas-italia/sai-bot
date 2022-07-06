@@ -10,9 +10,14 @@ export const getMembersWhoAllowedNotifications = async ({
   const usersCollection = getUsersCollection();
 
   const users = usersCollection.find({
-    $or: [
-      { lastRefillAt: { $lte: checkDate } },
-      { lastRefillAt: { $exists: false } },
+    $and: [
+      { notifications: true },
+      {
+        $or: [
+          { lastRefillAt: { $lte: checkDate } },
+          { lastRefillAt: { $exists: false } },
+        ],
+      },
     ],
   });
 
